@@ -4,40 +4,86 @@
  *************************************************************************************/
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "shellfuncts.h"
 
 /*************************************************************************************
- * hello - sends hello world to the user! I'm doing proper function commenting so future
- *         coders might not find my code as painful.
+ * create_cmd - creates a new file.
  *
- *		Params:	param1 - I explain my parameters, like this is 1 for American, 2 for
- *                      Australian
- *
- *		Returns: always returns 1, no matter what. Fairly useless.
- *
+ *		Params:	filename - The name of the file to create.
  *************************************************************************************/
+void create_cmd(char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (fp != NULL) {
+        fclose(fp);
+        fprintf(stderr, "Error: File '%s' already exists.\n", filename);
+        exit(1);
+    }
 
-int hello(int param1) {
-	// I'm commenting to explain that this checks param and changes the message
-	if (param1 == 1)
-		send_msg("Hello world!\n");
-	else
-		send_msg("G'day world!\n");
-
-	// Return 1 because, why not.
-	return 1;
+    fp = fopen(filename, "w");
+    if (fp == NULL) {
+        perror("fopen");
+        exit(1);
+    }
+    fclose(fp);
+    exit(0);
 }
 
 /*************************************************************************************
- * hello - sends hello world to the user! I'm doing proper function commenting so future
- *         coders might not find my code as painful.
+ * update_cmd - appends lines of text to a file.
  *
- *    Params:  param2 - not a very good parameter name - something better might be
- *                      say, msgstr or sendtext
- *
+ *		Params:	filename - The name of the file to update.
+ *              num - The number of times to append the text.
+ *              text - The text to append.
  *************************************************************************************/
+void update_cmd(char *filename, int num, char *text) {
+    FILE *fp = fopen(filename, "a");
+    if (fp == NULL) {
+        perror("fopen");
+        exit(1);
+    }
 
-void send_msg(const char *param2) {
-	printf("%s", param2);
+    for (int i = 0; i < num; i++) {
+        fprintf(fp, "%s\n", text);
+        fflush(fp);
+        sleep(strlen(text) / 5);
+    }
+
+    fclose(fp);
+    printf("Update of '%s' completed by process %d.\n", filename, getpid());
+    exit(0);
+}
+
+/*************************************************************************************
+ * list_cmd - displays the contents of a file.
+ *
+ *		Params:	filename - The name of the file to list.
+ *************************************************************************************/
+void list_cmd(char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (fp == NULL) {
+        fprintf(stderr, "Error: File '%s' does not exist.\n", filename);
+        exit(1);
+    }
+    fclose(fp);
+
+    execlp("cat", "cat", filename, NULL);
+    // If execlp returns, it must have failed.
+    perror("execlp");
+    exit(1);
+}
+
+/*************************************************************************************
+ * dir_cmd - lists the files in the current directory.
+ *************************************************************************************/
+void dir_cmd() {
+    execlp("ls", "ls", NULL);
+    // If execlp returns, it must have failed.
+    perror("execlp");
+    exit(1);
 }
 
