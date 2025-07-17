@@ -95,6 +95,11 @@ int main(void) {
         if (pid == 0) { // Child process
             printf("Child process %d created to execute command.\n", getpid());
 
+			volatile int wait_for_debugger = 1;
+            while(wait_for_debugger) {
+                sleep(1); // wait for debugger to attach
+            }
+
             if (strcmp(args[0], "create") == 0) {
                 if (args[1]) create_cmd(args[1]);
                 else fprintf(stderr, "Usage: create <name>\n");
