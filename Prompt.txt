@@ -1,0 +1,5 @@
+Complete the project implemntation within the currently available template files myshell.c, shellfuncts.c, and shellfuncts.h based upon the project description and requirements provided in the README.md file.
+
+Test the project using the sample input provided in the README once the changes are made.
+
+Correct the implementation of the commands and shell logic or compile time errors and re-test until the project satisfies the defined requirements. Validate that all commands can handle the test cases before completing the session. 
