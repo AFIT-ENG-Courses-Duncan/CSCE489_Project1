@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <ctype.h>
 
 #define MAX_ARGS 100
 #define MAX_CMD_LEN 256
@@ -52,26 +53,55 @@ void send_msg(const char *param2) {
 
 int parse_command(char *cmd_line, char **args, int *background) {
     int i = 0;
-    char *token;
-    char *cmd_copy = strdup(cmd_line);
-    
-    // Remove newline character
-    cmd_copy[strcspn(cmd_copy, "\n")] = 0;
+    char *p = cmd_line;
 
-    token = strtok(cmd_copy, " \t\n");
-    while (token != NULL && i < MAX_ARGS) {
-        args[i++] = strdup(token);
-        token = strtok(NULL, " \t\n");
+    // Remove newline character
+    p[strcspn(p, "\n")] = 0;
+
+    while (*p && i < MAX_ARGS - 1) {
+        // Skip leading whitespace
+        while (*p && isspace((unsigned char)*p)) {
+            p++;
+        }
+
+        if (*p == '\0') {
+            break;
+        }
+
+        if (*p == '"') {
+            p++; // Skip the opening quote
+            char *start = p;
+            char *end = strchr(p, '"');
+            if (end) {
+                *end = '\0';
+                args[i++] = strdup(start);
+                p = end + 1;
+            } else {
+                // Unterminated quote, treat as a single token
+                args[i++] = strdup(start);
+                break; // No more tokens
+            }
+        } else {
+            char *start = p;
+            while (*p && !isspace((unsigned char)*p)) {
+                p++;
+            }
+            if (isspace((unsigned char)*p)) {
+                *p = '\0';
+                p++;
+            }
+            args[i++] = strdup(start);
+        }
     }
     args[i] = NULL;
 
     *background = 0;
     if (i > 0 && strcmp(args[i - 1], "&") == 0) {
         *background = 1;
+        free(args[i - 1]);
         args[i - 1] = NULL;
     }
     
-    free(cmd_copy);
     return i;
 }
 
@@ -105,16 +135,6 @@ void update_file(char **args) {
     int num_lines = atoi(args[2]);
     char *text = args[3];
 
-    // Remove quotes from text
-    if (text[0] == '"') {
-        text++;
-    }
-    size_t len = strlen(text);
-    if (len > 0 && text[len - 1] == '"') {
-        text[len - 1] = '\0';
-    }
-
-
     FILE *fp = fopen(filename, "a");
     if (fp == NULL) {
         perror("fopen");
@@ -138,12 +158,10 @@ void list_file(char **args) {
         exit(1);
     }
 
-    FILE *fp = fopen(args[1], "r");
-    if (fp == NULL) {
+    if (access(args[1], F_OK) != 0) {
         fprintf(stderr, "list: cannot open file '%s'\n", args[1]);
         exit(1);
     }
-    fclose(fp);
 
     char command[MAX_CMD_LEN];
     snprintf(command, sizeof(command), "cat %s", args[1]);
